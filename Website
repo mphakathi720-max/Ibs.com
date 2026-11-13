@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+  <link rel="stylesheet" href="styles.css">
+  <title>ibanesizathusokuphila Creations | Talent Agency</title>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top">
+      <div id="brandLogo" class="brand-logo" aria-label="Agency logo">IC</div>
+      <div><strong id="agencyName">ibanesizathusokuphila Creations</strong><span>Poets · Actors · Singers</span></div>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#talent">Our talent</a>
+      <a href="#contact">Contact</a>
+      <button class="button button-outline" id="adminOpen">Admin</button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">Talent booking & management</p>
+      <h1>Distinctive voices.<br><em>Unforgettable presence.</em></h1>
+      <p>Meet the poets, actors, and singers represented by ibanesizathusokuphila Creations.</p>
+      <a class="button" href="#talent">Explore our talent <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <section id="talent" class="talent-section">
+      <div class="section-heading"><div><p class="eyebrow">The people behind the performance</p><h2>Our talent</h2></div>
+        <div class="filters" aria-label="Filter talent">
+          <button class="filter active" data-filter="All">All</button>
+          <button class="filter" data-filter="Poet">Poets</button>
+          <button class="filter" data-filter="Actor">Actors</button>
+          <button class="filter" data-filter="Singer">Singers</button>
+        </div>
+      </div>
+      <div id="talentGrid" class="talent-grid" aria-live="polite"></div>
+    </section>
+
+    <section id="contact" class="contact-section">
+      <p class="eyebrow">Let’s make it memorable</p>
+      <h2>Looking to book talent?</h2>
+      <p>Get in touch with our agency to discuss your event, production, or collaboration.</p>
+      <a class="button" href="mailto:ibanesizathusokuphila@gmail.com">Contact the agency</a>
+    </section>
+  </main>
+
+  <footer><span id="footerName">ibanesizathusokuphila Creations</span><span>Talent booking & artist management</span></footer>
+
+  <dialog id="adminDialog">
+    <div class="dialog-header"><div><p class="eyebrow">Agency workspace</p><h2>Manage your site</h2></div><button class="icon-button" id="closeAdmin" aria-label="Close">×</button></div>
+    <form id="loginForm" class="form-stack">
+      <p class="muted">Enter your admin PIN to update branding and profiles.</p>
+      <label>Admin PIN<input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" required></label>
+      <button class="button" type="submit">Unlock admin</button>
+      <small class="muted">Default PIN for first access: 1234</small>
+      <p id="loginError" class="error" hidden>That PIN didn’t match. Please try again.</p>
+    </form>
+    <div id="adminContent" hidden>
+      <div class="admin-tabs"><button class="admin-tab active" data-panel="profilesPanel">Talent profiles</button><button class="admin-tab" data-panel="settingsPanel">Logo & PIN</button></div>
+      <section id="profilesPanel" class="admin-panel">
+        <form id="talentForm" class="form-stack">
+          <h3 id="talentFormTitle">Add a talent profile</h3>
+          <input type="hidden" id="talentId">
+          <label>Full or stage name<input id="talentName" required maxlength="80" placeholder="e.g. Amara Ndlovu"></label>
+          <label>Discipline<select id="talentCategory"><option>Poet</option><option>Actor</option><option>Singer</option></select></label>
+          <label>Profile photo<input id="talentPhoto" type="url" placeholder="Paste an image URL (optional)"></label>
+          <label>Or upload a photo<input id="talentPhotoFile" type="file" accept="image/*,.heic,.heif,.tif,.tiff,.avif,.raw,.dng"></label>
+          <label>Biography<textarea id="talentBio" rows="3" maxlength="600" placeholder="A short introduction to this performer"></textarea></label>
+          <div class="form-actions"><button class="button" type="submit" id="saveTalent">Add profile</button><button class="button button-outline" type="button" id="cancelEdit" hidden>Cancel edit</button></div>
+        </form>
+        <div><h3>Current profiles</h3><div id="adminTalentList" class="admin-list"></div></div>
+      </section>
+      <section id="settingsPanel" class="admin-panel" hidden>
+        <form id="settingsForm" class="form-stack">
+          <h3>Agency branding & access</h3>
+          <label>Agency name<input id="settingsName" required maxlength="100"></label>
+          <label>Logo image<input id="logoFile" type="file" accept="image/*"></label>
+          <div class="logo-settings"><div id="settingsLogoPreview" class="brand-logo">IC</div><button class="button button-outline" type="button" id="removeLogo">Use initials instead</button></div>
+          <label>New admin PIN <span class="muted">(leave blank to keep the current PIN)</span><input id="newPin" type="password" inputmode="numeric" minlength="4" maxlength="8" pattern="[0-9]{4,8}" placeholder="4–8 digits"></label>
+          <label>Confirm new PIN<input id="confirmPin" type="password" inputmode="numeric" minlength="4" maxlength="8" pattern="[0-9]{4,8}" placeholder="Repeat the new PIN"></label>
+          <button class="button" type="submit">Save branding & PIN</button>
+          <p id="settingsMessage" class="muted" role="status"></p>
+        </form>
+      </section>
+      <button id="adminLogout" class="button button-outline logout">Lock admin</button>
+    </div>
+  </dialog>
+
+  <script>
+    const STORAGE = { talents: 'agency-talent-profiles', settings: 'agency-site-settings' };
+    const starterTalents = [
+      { id: 'poet-zola', name: 'Zola Maseko', category: 'Poet', photo: '', bio: 'A spoken-word poet bringing heritage, memory, and contemporary stories to the stage.' },
+      { id: 'actor-marcus', name: 'Marcus Dlamini', category: 'Actor', photo: '', bio: 'A versatile stage and screen performer available for productions, readings, and campaigns.' },
+      { id: 'singer-soraia', name: 'Soraia Mendes', category: 'Singer', photo: '', bio: 'A soulful vocalist for live showcases, celebrations, and special events.' }
+    ];
+    let talents = readStorage(STORAGE.talents, starterTalents);
+    let settings = readStorage(STORAGE.settings, { name: 'ibanesizathusokuphila Creations', logo: '', pin: '1234' });
+    let activeFilter = 'All';
+    let isUnlocked = false;
+
+    function readStorage(key, fallback) {
+      try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value ?? structuredClone(fallback);
+      } catch { return structuredClone(fallback); }
+    }
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE.talents, JSON.stringify(talents));
+        localStorage.setItem(STORAGE.settings, JSON.stringify(settings));
+      } catch {
+        alert('Could not save these changes. Try a smaller image file.');
+      }
+    }
+    function initials(name) {
+      return name.trim().split(/\s+/).slice(0, 2).map(word => word[0] || '').join('').toUpperCase() || 'IC';
+    }
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    }
+    function renderBranding() {
+      document.title = `${settings.name} | Talent Agency`;
+      document.getElementById('agencyName').textContent = settings.name;
+      document.getElementById('footerName').textContent = settings.name;
+      const logo = settings.logo ? `<img src="${settings.logo}" alt="${escapeHTML(settings.name)} logo">` : escapeHTML(initials(settings.name));
+      document.getElementById('brandLogo').innerHTML = logo;
+      document.getElementById('settingsLogoPreview').innerHTML = logo;
+      document.getElementById('settingsName').value = settings.name;
+    }
+    function renderTalent() {
+      const visible = talents.filter(talent => activeFilter === 'All' || talent.category === activeFilter);
+      const grid = document.getElementById('talentGrid');
+      grid.innerHTML = visible.length ? visible.map(talent => `
+        <article class="talent-card">
+          <div class="portrait">${talent.photo ? `<img src="${escapeHTML(talent.photo)}" alt="Portrait of ${escapeHTML(talent.name)}" onerror="this.remove()">` : `<span>${escapeHTML(initials(talent.name))}</span>`}</div>
+          <div class="card-copy"><span class="category">${escapeHTML(talent.category)}</span><h3>${escapeHTML(talent.name)}</h3><p>${escapeHTML(talent.bio || 'Profile details coming soon.')}</p></div>
+        </article>`).join('') : '<p class="empty-state">No profiles in this category yet.</p>';
+    }
+    function renderAdminList() {
+      const list = document.getElementById('adminTalentList');
+      list.innerHTML = talents.length ? talents.map(talent => `
+        <div class="admin-row"><div><strong>${escapeHTML(talent.name)}</strong><span>${escapeHTML(talent.category)}</span></div><div class="row-actions"><button type="button" data-edit="${escapeHTML(talent.id)}">Edit</button><button type="button" data-delete="${escapeHTML(talent.id)}">Remove</button></div></div>`).join('') : '<p class="muted">No profiles added yet.</p>';
+    }
+    function render() { renderBranding(); renderTalent(); renderAdminList(); }
+    function resetTalentForm() {
+      document.getElementById('talentForm').reset();
+      document.getElementById('talentId').value = '';
+      document.getElementById('talentFormTitle').textContent = 'Add a talent profile';
+      document.getElementById('saveTalent').textContent = 'Add profile';
+      document.getElementById('cancelEdit').hidden = true;
+    }
+    function imageFileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) return resolve('');
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const source = reader.result;
+          if (typeof source !== 'string') {
+            reject(new Error('Could not read that picture. Please try another file.'));
+            return;
+          }
+
+          // Browsers vary in MIME detection. Try to decode the file itself rather
+          // than rejecting it because its type or extension is unfamiliar.
+          const image = new Image();
+          image.onload = () => {
+            const width = image.naturalWidth || image.width;
+            const height = image.naturalHeight || image.height;
+            if (!width || !height) {
+              resolve(source);
+              return;
+            }
+
+            const maxDimension = 1200;
+            const scale = Math.min(1, maxDimension / Math.max(width, height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(width * scale));
+            canvas.height = Math.max(1, Math.round(height * scale));
+            const context = canvas.getContext('2d');
+            if (!context) {
+              resolve(source);
+              return;
+            }
+
+            try {
+              context.drawImage(image, 0, 0, canvas.width, canvas.height);
+              const compressed = canvas.toDataURL('image/webp', 0.82);
+              resolve(compressed.startsWith('data:image/webp') ? compressed : source);
+            } catch {
+              // Preserve formats such as animated GIF or SVG when canvas export fails.
+              resolve(source);
+            }
+          };
+          image.onerror = () => {
+            // Keep the original data so formats this browser cannot decode now
+            // can still be retained instead of blocking the recruit form.
+            resolve(source);
+          };
+          image.src = source;
+        };
+        reader.onerror = () => reject(new Error('Could not read that picture. Please try another file.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
+      activeFilter = button.dataset.filter;
+      document.querySelectorAll('.filter').forEach(item => item.classList.toggle('active', item === button));
+      renderTalent();
+    }));
+    const dialog = document.getElementById('adminDialog');
+    document.getElementById('adminOpen').addEventListener('click', () => {
+      document.getElementById('loginForm').hidden = isUnlocked;
+      document.getElementById('adminContent').hidden = !isUnlocked;
+      dialog.showModal();
+    });
+    document.getElementById('closeAdmin').addEventListener('click', () => dialog.close());
+    document.getElementById('loginForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const correct = document.getElementById('loginPin').value === settings.pin;
+      document.getElementById('loginError').hidden = correct;
+      if (!correct) return;
+      isUnlocked = true;
+      document.getElementById('loginForm').hidden = true;
+      document.getElementById('adminContent').hidden = false;
+      document.getElementById('loginPin').value = '';
+      renderAdminList();
+    });
+    document.querySelectorAll('.admin-tab').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab').forEach(item => item.classList.toggle('active', item === button));
+      document.querySelectorAll('.admin-panel').forEach(panel => panel.hidden = panel.id !== button.dataset.panel);
+    }));
+    document.getElementById('talentForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const id = document.getElementById('talentId').value;
+      const previous = talents.find(talent => talent.id === id);
+      let photo = document.getElementById('talentPhoto').value.trim() || (previous && previous.photo) || '';
+      try {
+        photo = await imageFileToDataURL(document.getElementById('talentPhotoFile').files[0]) || photo;
+      } catch (error) { alert(error.message); return; }
+      const entry = { id: id || `talent-${Date.now()}`, name: document.getElementById('talentName').value.trim(), category: document.getElementById('talentCategory').value, photo, bio: document.getElementById('talentBio').value.trim() };
+      if (previous) talents = talents.map(talent => talent.id === id ? entry : talent);
+      else talents.unshift(entry);
+      saveData(); render(); resetTalentForm();
+    });
+    document.getElementById('cancelEdit').addEventListener('click', resetTalentForm);
+    document.getElementById('adminTalentList').addEventListener('click', event => {
+      const editId = event.target.dataset.edit;
+      const deleteId = event.target.dataset.delete;
+      if (editId) {
+        const talent = talents.find(item => item.id === editId);
+        document.getElementById('talentId').value = talent.id;
+        document.getElementById('talentName').value = talent.name;
+        document.getElementById('talentCategory').value = talent.category;
+        document.getElementById('talentPhoto').value = talent.photo.startsWith('data:') ? '' : talent.photo;
+        document.getElementById('talentBio').value = talent.bio;
+        document.getElementById('talentFormTitle').textContent = `Edit ${talent.name}`;
+        document.getElementById('saveTalent').textContent = 'Save changes';
+        document.getElementById('cancelEdit').hidden = false;
+        document.getElementById('talentForm').scrollIntoView({ behavior: 'smooth' });
+      }
+      if (deleteId && confirm('Remove this talent profile?')) {
+        talents = talents.filter(item => item.id !== deleteId);
+        saveData(); render();
+      }
+    });
+    document.getElementById('settingsForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const pin = document.getElementById('newPin').value;
+      const confirmation = document.getElementById('confirmPin').value;
+      if ((pin || confirmation) && (pin.length < 4 || pin !== confirmation)) {
+        document.getElementById('settingsMessage').textContent = 'Enter matching PINs with 4–8 digits, or leave both blank to keep the current PIN.';
+        return;
+      }
+      settings.name = document.getElementById('settingsName').value.trim();
+      if (pin) settings.pin = pin;
+      try {
+        settings.logo = await imageFileToDataURL(document.getElementById('logoFile').files[0]) || settings.logo;
+      } catch (error) { document.getElementById('settingsMessage').textContent = error.message; return; }
+      saveData(); renderBranding();
+      document.getElementById('settingsMessage').textContent = 'Logo, agency name, and PIN saved.';
+      document.getElementById('settingsForm').reset();
+      document.getElementById('settingsName').value = settings.name;
+      isUnlocked = true;
+    });
+    document.getElementById('removeLogo').addEventListener('click', () => {
+      settings.logo = ''; saveData(); renderBranding();
+      document.getElementById('settingsMessage').textContent = 'Initials are now being used as the logo. Save settings to keep your PIN or name changes.';
+    });
+    document.getElementById('adminLogout').addEventListener('click', () => {
+      isUnlocked = false; dialog.close();
+    });
+    render();
+  </script>
+</body>
+</html>
